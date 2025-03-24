@@ -17,7 +17,7 @@
 #include "uart-mmio.h"
 
 struct uart {
-  uint8_t uartno; // the UART numéro
+  uint8_t uartno; // the UART number
   void* bar;      // base address register for this UART
 };
 

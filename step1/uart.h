@@ -17,7 +17,7 @@
 
 /*
  * Defines the number of available UARTs
- * and their respective numéro.
+ * and their respective number.
  */
 #define NUARTS 3
 #define UART0 0
@@ -31,7 +31,7 @@
  * there is at least one character available in the
  * UART RX FIFO queue.
  */
-void uart_receive(uint8_t uartno, char *pt);
+uint8_t uart_receive(uint8_t uartno, char *pt);
 
 /**
  * Write a one-byte character through the given uart,
