@@ -1,0 +1,125 @@
+===========
+  COURS 1
+===========
+
+Mission : piloter le matériel
+Instruction Set Architecture pour pouvoir communiquer avec le hardware depuis notre appli C.
+
+Le câble peut contrôler/débugguer le matériel et faire des I/O via terminal (ligne série).
+Qemu exécute des programmes (dont le debugguer) comme si c'était sur du vrai matériel.
+- le configurer pour avoir une board reliée à un terminal via un câble, le terminal est une fenêtre de notre ordi
+
+arm-none-eabi-gcc est capable de créer du code qui s'exécute sur la machine target.
+Qemu donne la possibilité de travailler sur du hardware que nous n'avons pas, son gdb-server permet de débugguer, accédé par un
+autre terminal où on débuggue avec arm-none-eabi-gdb <fichier>.elf et qui n'est pas connu par le matériel.
+
+Fichier .elf => production de la compilation, relogeable, le linker détermine où chaque section est chargée en mémoire
+- le script du linker peut être craché par gcc je crois, mais pour le projet il y a kernel.ld
+- Qemu s'occupe de charger les sections en mémoire
+
+Processeur écrit/lit dans la mémoire en fetch/decode/execute, local interconnect véhicule le load/store vers :
+- controleurs de mémoire Flash/EPROM se rappelle du contenu, et DDR ne se rappelle de rien
+- controller UART pour la ligne série, avec le terminal relié au bout
+- zones mémoire pour parler avec les autres périphériques (MMIO registers)
+Les registres contiennent les valeurs à load/store.
+
+Quelles sont les zones de la mémoire du hardware ?
+- voir la doc
+- dans notre cas, l'adresse 0 est le BIOS (mappé) qui charge notre programme directement (car pas d'OS) à l'adresse 0
+(c'est en fait un reset handler, qui ensuite saute vers le boot code en assembleur "startup.s" qui saute vers la première instruction de notre programme)
+	- le gcc frame pointer sert à gdb de savoir où est la fin de la pile pour parcourir les appels de fonctions
+- Qemu se charge de placer le programme au bon endroit
+
+Qemu peut décrire l'illusion créée pour le matériel si l'émulation n'est pas exactement comme dans la doc
+- comprendre les options données à Qemu, demander rapidement au prof car "c'est l'enfer"
+
+
+===========
+  WEEK 1
+===========
+
+DONE tout installer, lancer sur Qemu avec terminal attaché
+TODO faire marcher l'UART0 pour faire une echo console
+
+Si bloqué lors du make, Ctrl-A + C et quit pour quitter Qemu.
+J'ai des erreurs qui commencent par "ALSA lib confmisc.c:855:(parse_card) cannot find card '0'", je peux faire avec ?
+
+QUESTIONS
+
+- où est l'ISA dans le projet fourni ?
+
+- quelle est la board qu'on émule ? C'est quoi versatile AB ou PB ?
+>> CPU est cortex-a8, le reste de la board est "versatile" et contient ça :
+https://www.qemu.org/docs/master/system/arm/versatile.html
+>> les slides parlent de versatile pb, alors que versatile ab dans Makefile
+
+- où est-ce qu'on donne le terminal dans le Makefile ?
+>> sûrement -serial mon:stdio, dit que le terminal est la fenêtre où se lance Qemu ?
+
+- c'est quoi kernel.ld ? kernel.bin ?
+>> kernel.ld est un linker script, kernel.bin est une copie du binaire ELF, je ne sais pas à quoi elle sert
+TODO comprendre ce que kernel.ld a choisi comme setup
+
+- slide 11: pourquoi mon kernel ne fait rien ?
+>> comprendre les slides suivantes
+	- qu'est-ce que Zync-7000 ?
+	>> la SoC
+	- qu'est-ce que DDR ?
+	>> Double Data Rate memory
+	- qu'est-ce qu'OCM ?
+	>> On-Chip Memory, parce qu'il y a de la mémoire là-dedans, mappé aux adresses les plus hautes, contient le "BIOS"
+	- on initialise le contrôleur de mémoire (qui ?) et on copie le "BIOS" dedans pour l'exécuter
+	- Qemu charge les sections de notre .elf (relogeable) à partir de l'adresse 0 (écrase le "BIOS")
+	- le code de exception.s est donc exécuté pour mettre en place le vecteur d'interruption
+	- le reset handler défini dans startup.s est exécuté (TODO comprendre pourquoi), les explications sont déjà dans le code
+	- la fonction _start est appelée
+	- on vérifie que la stack soit de taille positive
+		- qu'est-ce que "MEMORY" ?
+	- on initialise les UARTS avec les bar données dans la doc DUI0225 (versatile board)
+	- qu'est-ce que les registres MMIO ?
+	>> ce qui lit ou écrit des données dans les zones réservées au devices
+	
+	- je ne vois pas où est le bit qui dit que le RX FIFO est vide
+
+- où est le code des handlers autre que reset ? A implémenter les prochaines séances ?
+
+
+======================
+   Practical Guide
+======================
+
+* Installing the tools
+
+sudo apt install qemu-system-arm							# Qemu to execute programs like its on real hardware
+sudo apt install gcc-arm-none-eabi binutils-arm-none-eabi	# gcc and binutils to compile, link for a specific target and see what it looks like
+sudo apt install gdb-multiarch								# gdb to debug program execution through Qemu port
+
+* Makefile (see Makefile and kernel.ld)
+
+- cross-compile the program
+	arm-none-eabi-gcc ou arm-none-eabi-as pour compiler les sources
+	arm-none-eabi-ld -T kernel.ld -nostdlib -static <fichiers_o> -o build/kernel.elf
+	>> custom linker script kernel.ld is used
+
+- execute Qemu
+	qemu-system-arm -M versatileab -cpu cortex-a8 -m "32K" nographic -serial mon:stdio -device loader,file=build/kernel.elf
+	>> -gdb tcp::<gdb_port> -S to hook gdb to Qemu port and pause the VM
+
+* Debugging
+
+In a new terminal, gdb-multiarch <kernel>.elf
+Then:
+	target remote localhost:<gdb_port>
+	
+* Execution overview
+
+In order:
+- exception.s: ldr pc, reset_handler_addr
+- reset_handler of startup.s
+- _start of main.c
+
+
+Misc. notes
+-------------
+
+bar : Base Address Register
