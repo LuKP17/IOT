@@ -54,9 +54,9 @@ void uart_disable(uint32_t uartno) {
 }
 
 void uart_receive(uint8_t uartno, char *pt) {
-  struct uart*uart = &uarts[uartno];
-  // TODO: not implemented yet...
-  panic();
+  struct uart* uart = &uarts[uartno];
+  while((mmio_read16(uart->bar, UART_FR) & UART_FR_RXFE));
+  *pt = (char)mmio_read16(uart->bar, UART_DR);
 }
 
 /**
@@ -65,8 +65,8 @@ void uart_receive(uint8_t uartno, char *pt) {
  */
 void uart_send(uint8_t uartno, char s) {
   struct uart* uart = &uarts[uartno];
-  // TODO: not implemented yet...
-  panic();
+  while((mmio_read16(uart->bar, UART_FR) & UART_FR_TXFF));
+  mmio_write16(uart->bar, UART_DR, (uint16_t)s);
 }
 
 /**

@@ -31,7 +31,7 @@
  * there is at least one character available in the
  * UART RX FIFO queue.
  */
-uint8_t uart_receive(uint8_t uartno, char *pt);
+void uart_receive(uint8_t uartno, char *pt);
 
 /**
  * Write a one-byte character through the given uart,

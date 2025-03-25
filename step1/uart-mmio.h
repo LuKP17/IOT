@@ -35,7 +35,9 @@
  * If so, we need the details for the data and status registers.
  */
 #define UART_DR 0x000
-#define UART_SR 0x004
-#define UART_FR 0x00 // ???
+#define UART_FR 0x018
+
+#define UART_FR_RXFE (1 << 4) // Receive FIFO is empty
+#define UART_FR_TXFF (1 << 5) // Transmit FIFO is empty
 
 #endif /* UART_MMIO_H_ */
