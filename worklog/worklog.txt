@@ -35,6 +35,60 @@ Qemu peut décrire l'illusion créée pour le matériel si l'émulation n'est pa
 
 
 ===========
+  COURS 2
+===========
+
+Mission : éliminer le spinning (attente active de pression sur bouton ou touche clavier).
+
+Il faut vite s'occuper du matériel, ex: traiter les caractères reçues par l'UART pendant que l'utilisateur tape une phrase
+Le processeur peut exécution instruction s'endormir si rien à faire, et sera réveillé par un signal eléctrique.
+VIC (device) est branché aux devices et fait le coordinateur, il est appelé par les controllers et appelle le CPU.
+VIC a une mémoire pour ne pas perdre les demandes d'interruption.
+Quels numéros d'interruptions pour quels devices ?
+Quelle est la tête du vecteur d'interruption ?
+>> voir la doc
+Processeur autorise de sonner à la porte (fil à 5V), autres autorisations pour le VIC et le controller de device.
+
+Quand le processeur doit réagir aux interruptions ? Comment ?
+>> jamais au milieu d'une instruction, mais une ligne en C peut être coupée en 2 par une interruption
+>> passer en mode interruption, la plupart des registres seront les mêmes => sauvegarder sur notre stack en utilisant le lr (le pc est déjà fait dans R14 et cpsr), les interruptions sont désactivés
+>> passer le pc en 0x18 pour traiter l'interruption (_isr, Interrupt Service Routine)
+	- '^' restaure le mode original
+TODO ajouter une 2è stack dans linker script et décommenter la stack IRQ dans check_stack()
+Le processeur a un pipeline a 3 niveaux, donc le pc est en avance par rapport à la prochaine instruction a exécuter
+
+Comment donner a UART le droit de lever inter ?
+Comment dire au VIC de preter attention ?
+Comment autorise VIC à dérouter CPU ?
+
+UART :
+>> utiliser le Summary of registers de la doc que je connais
+>> interrupt UARTIMSC mask pour activer les interruptions que en réception, donc bit 4 puis bit 5 plus tard
+	- donc le send ne changera pas au début
+UARTRIS = ce que je voudrais si je pouvais
+UARTMIS = ce que je fais ce qui m'est permis, à traiter
+UARTICR = set bit à 1 pour le mettre à 0 dans le UARTRIS, qui entraine UARTMIS
+UARTIFLS = pour laisser ou non le FIFO se remplir (envoyer suffisament d'octets pour délencher une interruption)
+>> on peut lire les registres avec le débugguer et les modifier à la main
+L'interruption est lancé lors de la transition et pas en fonction de la valeur.
+
+VIC :
+Doc section "Programmer's model" comme d'hab (PL190)
+VICIRQSTATUS = quelles interruptions sont levées, comme UARTMIS
+VICRAWINT = comme UARTRIS
+VICINTENABLE = comme UARTMISC
+VICINTENCLEAR = comme UARTICR
+
+CPU :
+Fourni
+
+TODO coder le interrupt handler (à copier depuis les slides)
+Tableau de handlers, un par interruption, contient un pointeur vers le traitant, cookie pour savoir où sont les données
+Demander au VIC le champ de bits, puis boucle avec un masque pour savoir quels traitans appeler.
+Pas d'ack au niveau du VIC.
+Slide 32 a l'overview du soft
+
+===========
   WEEK 1
 ===========
 
@@ -54,32 +108,32 @@ https://www.qemu.org/docs/master/system/arm/versatile.html
 >> les slides parlent de versatile pb, alors que versatile ab dans Makefile
 
 - où est-ce qu'on donne le terminal dans le Makefile ?
->> sûrement -serial mon:stdio, dit que le terminal est la fenêtre où se lance Qemu ?
+>> -serial mon:stdio dit que le terminal est la fenêtre où se lance Qemu
 
 - c'est quoi kernel.ld ? kernel.bin ?
 >> kernel.ld est un linker script, kernel.bin est une copie du binaire ELF, je ne sais pas à quoi elle sert
+>> kernel.elf a les descriptions, infos autre que code et données, .bin contient ce qui est projeté en mémoire (y compris les trous si .elf a des trous)
 TODO comprendre ce que kernel.ld a choisi comme setup
 
-- slide 11: pourquoi mon kernel ne fait rien ?
->> comprendre les slides suivantes
-	- qu'est-ce que Zync-7000 ?
-	>> la SoC
-	- qu'est-ce que DDR ?
-	>> Double Data Rate memory
-	- qu'est-ce qu'OCM ?
-	>> On-Chip Memory, parce qu'il y a de la mémoire là-dedans, mappé aux adresses les plus hautes, contient le "BIOS"
-	- on initialise le contrôleur de mémoire (qui ?) et on copie le "BIOS" dedans pour l'exécuter
-	- Qemu charge les sections de notre .elf (relogeable) à partir de l'adresse 0 (écrase le "BIOS")
-	- le code de exception.s est donc exécuté pour mettre en place le vecteur d'interruption
-	- le reset handler défini dans startup.s est exécuté (TODO comprendre pourquoi), les explications sont déjà dans le code
-	- la fonction _start est appelée
-	- on vérifie que la stack soit de taille positive
-		- qu'est-ce que "MEMORY" ?
-	- on initialise les UARTS avec les bar données dans la doc DUI0225 (versatile board)
-	- qu'est-ce que les registres MMIO ?
-	>> ce qui lit ou écrit des données dans les zones réservées au devices
-	
-	- je ne vois pas où est le bit qui dit que le RX FIFO est vide
+- qu'est-ce que Zync-7000 ?
+>> la SoC
+- qu'est-ce que DDR ?
+>> Double Data Rate memory
+- qu'est-ce qu'OCM ?
+>> On-Chip Memory, parce qu'il y a de la mémoire là-dedans, mappé aux adresses les plus hautes, contient le "BIOS"
+- on initialise le contrôleur de mémoire (qui ?) et on copie le "BIOS" dedans pour l'exécuter
+- Qemu charge les sections de notre .elf (relogeable) à partir de l'adresse 0 (écrase le "BIOS")
+- le code de exception.s est donc exécuté pour mettre en place le vecteur d'interruption
+- le reset handler défini dans startup.s est exécuté (TODO comprendre pourquoi), les explications sont déjà dans le code
+- la fonction _start est appelée
+- on vérifie que la stack soit de taille positive
+	- qu'est-ce que "MEMORY" ?
+	>> vient sûrement du Makefile
+- on initialise les UARTS avec les bar données dans la doc DUI0225 (versatile board)
+- qu'est-ce que les registres MMIO ?
+>> ce qui lit ou écrit des données dans les zones réservées au devices
+- utiliser les registres MMIO pour lire le registre UART_FR et lire/écrire dans UART_DR
+>> flag RXFE et TXFF pour attendre qu'un octet soit disponible en lecture ou puisse être écrit sans être perdu
 
 - où est le code des handlers autre que reset ? A implémenter les prochaines séances ?
 
@@ -123,3 +177,4 @@ Misc. notes
 -------------
 
 bar : Base Address Register
+stmfd/ldmfd : store/load multiple

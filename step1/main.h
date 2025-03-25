@@ -25,7 +25,7 @@ void kprintf(const char *fmt, ...);
 
 __inline__
 __attribute__((always_inline))
-uint32_t mmio_read8(void* bar, uint8_t offset) {
+uint8_t mmio_read8(void* bar, uint8_t offset) {
   return *((uint8_t*)(bar+offset));
 }
 
