@@ -47,7 +47,7 @@ SECTIONS
   _bss_end = .;
   
   /* 
-   * Finally, reserve some memory for the C stack
+   * Finally, reserve some memory for the C stacks
    * Remember that stacks are growing downward, 
    * so the top of the stack is at the end of 
    * the reserved memory region. 
@@ -59,4 +59,7 @@ SECTIONS
   . = ALIGN(8);
   . = . + 0x1000; /* 4KB of stack memory */
   stack_top = .;
+  . = ALIGN(8);
+  . = . + 0x1000; /* 4KB of irq stack memory */
+  irq_stack_top = .;
 }

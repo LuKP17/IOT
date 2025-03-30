@@ -20,14 +20,9 @@ extern uint32_t stack_top;
 void check_stacks() {
   void *memsize = (void*)MEMORY;
   void *addr;
-  addr = &stack_top;
-  if (addr >= memsize)
-    panic();
-/*
   addr = &irq_stack_top;
   if (addr >= memsize)
     panic();
-*/
 }
 
 /**
