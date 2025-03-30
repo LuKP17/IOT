@@ -35,6 +35,7 @@ void _start(void) {
   char c;
   check_stacks();
   core_enable_irqs();
+  vic_setup_irqs();
   uarts_init();
   uart_enable(UART0);
   for (;;) {

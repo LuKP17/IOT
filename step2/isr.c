@@ -63,7 +63,8 @@ void core_halt() {
  */
 void vic_setup_irqs() {
   // TODO
-  panic();
+  _irqs_setup();
+  // vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, <cookie>);
 }
 
 /*
@@ -71,7 +72,8 @@ void vic_setup_irqs() {
  */
 void vic_enable_irq(uint32_t irq, void (*callback)(uint32_t, void*), void *cookie) {
   // TODO
-  panic();
+  // handlers[irq].callback = callback;
+  // handlers[irq].cookie = cookie;
 }
 
 /*

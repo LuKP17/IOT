@@ -14,7 +14,7 @@
  * Programmer's Reference, 4.9 Interrupt Controllers
  */
 
-#define VIC_BASE_ADDR ???
+#define VIC_BASE_ADDR 0x10140000
 
 /*
  * PrimeCell Vectored Interrupt Controller (PL190) Technical Reference Manual
@@ -27,7 +27,7 @@
  * A HIGH bit indicates that the interrupt is active,
  * and generates an IRQ interrupt to the processor.
  */
-#define VICIRQSTATUS ???
+#define VICIRQSTATUS 0x000
 
 /*
  * Shows the status of the interrupts after masking by
@@ -35,19 +35,19 @@
  * A HIGH bit indicates that the interrupt is active,
  * and generates an FIQ interrupt to the processor.
  */
-#define VICFIQSTATUS ???
+#define VICFIQSTATUS 0x004
 /*
  * Shows the status of the interrupts before masking by
  * the enable registers. A HIGH bit indicates that
  * the appropriate interrupt request is active before masking.
  */
-#define VICRAWSTATUS ???
+#define VICRAWSTATUS 0x008
 /*
  * [31:0] Selects the type of interrupt for interrupt requests:
  *   1 = FIQ interrupt
  *   0 = IRQ interrupt.
  */
-#define VICINTSELECT ???
+#define VICINTSELECT 0x00C
 /*
  * Enables the interrupt request lines:
  *   1 = Interrupt enabled. Enables interrupt request to processor.
@@ -56,12 +56,12 @@
  * On writes, a HIGH bit sets the corresponding bit in
  * the VICINTENABLE Register, while a LOW bit has no effect.
  */
-#define VICINTENABLE ???
+#define VICINTENABLE 0x010
 /*
  * Clears bits in the VICINTENABLE Register.
  * On writes, a HIGH bit clears the corresponding bit in the
  * VICINTENABLE Register, while a LOW bit has no effect.
  */
-#define VICINTCLEAR ???
+#define VICINTCLEAR 0x014
 
 #endif /* ISR_MMIO_H_ */
