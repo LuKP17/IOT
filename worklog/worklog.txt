@@ -35,6 +35,56 @@ Qemu peut décrire l'illusion créée pour le matériel si l'émulation n'est pa
 
 
 ===========
+  WEEK 1
+===========
+
+DONE tout installer, lancer sur Qemu avec terminal attaché
+TODO faire marcher l'UART0 pour faire une echo console
+
+Si bloqué lors du make, Ctrl-A + C et quit pour quitter Qemu.
+J'ai des erreurs qui commencent par "ALSA lib confmisc.c:855:(parse_card) cannot find card '0'", je peux faire avec ?
+
+QUESTIONS
+
+- où est l'ISA dans le projet fourni ?
+
+- quelle est la board qu'on émule ? C'est quoi versatile AB ou PB ?
+>> CPU est cortex-a8, le reste de la board est "versatile" et contient ça :
+https://www.qemu.org/docs/master/system/arm/versatile.html
+>> les slides parlent de versatile pb, alors que versatile ab dans Makefile
+
+- où est-ce qu'on donne le terminal dans le Makefile ?
+>> -serial mon:stdio dit que le terminal est la fenêtre où se lance Qemu
+
+- c'est quoi kernel.ld ? kernel.bin ?
+>> kernel.ld est un linker script, kernel.bin est une copie du binaire ELF, je ne sais pas à quoi elle sert
+>> kernel.elf a les descriptions, infos autre que code et données, .bin contient ce qui est projeté en mémoire (y compris les trous si .elf a des trous)
+TODO comprendre ce que kernel.ld a choisi comme setup
+
+- qu'est-ce que Zync-7000 ?
+>> la SoC
+- qu'est-ce que DDR ?
+>> Double Data Rate memory
+- qu'est-ce qu'OCM ?
+>> On-Chip Memory, parce qu'il y a de la mémoire là-dedans, mappé aux adresses les plus hautes, contient le "BIOS"
+- on initialise le contrôleur de mémoire (qui ?) et on copie le "BIOS" dedans pour l'exécuter
+- Qemu charge les sections de notre .elf (relogeable) à partir de l'adresse 0 (écrase le "BIOS")
+- le code de exception.s est donc exécuté pour mettre en place le vecteur d'interruption
+- le reset handler défini dans startup.s est exécuté (TODO comprendre pourquoi), les explications sont déjà dans le code
+- la fonction _start est appelée
+- on vérifie que la stack soit de taille positive
+	- qu'est-ce que "MEMORY" ?
+	>> vient sûrement du Makefile
+- on initialise les UARTS avec les bar données dans la doc DUI0225 (versatile board)
+- qu'est-ce que les registres MMIO ?
+>> ce qui lit ou écrit des données dans les zones réservées au devices
+- utiliser les registres MMIO pour lire le registre UART_FR et lire/écrire dans UART_DR
+>> flag RXFE et TXFF pour attendre qu'un octet soit disponible en lecture ou puisse être écrit sans être perdu
+
+- où est le code des handlers autre que reset ? A implémenter les prochaines séances ?
+
+
+===========
   COURS 2
 ===========
 
@@ -88,54 +138,12 @@ Demander au VIC le champ de bits, puis boucle avec un masque pour savoir quels t
 Pas d'ack au niveau du VIC.
 Slide 32 a l'overview du soft
 
+
 ===========
-  WEEK 1
+  WEEK 2
 ===========
 
-DONE tout installer, lancer sur Qemu avec terminal attaché
-TODO faire marcher l'UART0 pour faire une echo console
 
-Si bloqué lors du make, Ctrl-A + C et quit pour quitter Qemu.
-J'ai des erreurs qui commencent par "ALSA lib confmisc.c:855:(parse_card) cannot find card '0'", je peux faire avec ?
-
-QUESTIONS
-
-- où est l'ISA dans le projet fourni ?
-
-- quelle est la board qu'on émule ? C'est quoi versatile AB ou PB ?
->> CPU est cortex-a8, le reste de la board est "versatile" et contient ça :
-https://www.qemu.org/docs/master/system/arm/versatile.html
->> les slides parlent de versatile pb, alors que versatile ab dans Makefile
-
-- où est-ce qu'on donne le terminal dans le Makefile ?
->> -serial mon:stdio dit que le terminal est la fenêtre où se lance Qemu
-
-- c'est quoi kernel.ld ? kernel.bin ?
->> kernel.ld est un linker script, kernel.bin est une copie du binaire ELF, je ne sais pas à quoi elle sert
->> kernel.elf a les descriptions, infos autre que code et données, .bin contient ce qui est projeté en mémoire (y compris les trous si .elf a des trous)
-TODO comprendre ce que kernel.ld a choisi comme setup
-
-- qu'est-ce que Zync-7000 ?
->> la SoC
-- qu'est-ce que DDR ?
->> Double Data Rate memory
-- qu'est-ce qu'OCM ?
->> On-Chip Memory, parce qu'il y a de la mémoire là-dedans, mappé aux adresses les plus hautes, contient le "BIOS"
-- on initialise le contrôleur de mémoire (qui ?) et on copie le "BIOS" dedans pour l'exécuter
-- Qemu charge les sections de notre .elf (relogeable) à partir de l'adresse 0 (écrase le "BIOS")
-- le code de exception.s est donc exécuté pour mettre en place le vecteur d'interruption
-- le reset handler défini dans startup.s est exécuté (TODO comprendre pourquoi), les explications sont déjà dans le code
-- la fonction _start est appelée
-- on vérifie que la stack soit de taille positive
-	- qu'est-ce que "MEMORY" ?
-	>> vient sûrement du Makefile
-- on initialise les UARTS avec les bar données dans la doc DUI0225 (versatile board)
-- qu'est-ce que les registres MMIO ?
->> ce qui lit ou écrit des données dans les zones réservées au devices
-- utiliser les registres MMIO pour lire le registre UART_FR et lire/écrire dans UART_DR
->> flag RXFE et TXFF pour attendre qu'un octet soit disponible en lecture ou puisse être écrit sans être perdu
-
-- où est le code des handlers autre que reset ? A implémenter les prochaines séances ?
 
 
 ======================
