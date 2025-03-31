@@ -4,7 +4,7 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-    {
+    //{
       /* Cortex-Debug (marus25)
        * (ARM Cortex-M GDB Debugger support for VSCode)
        *
@@ -19,7 +19,7 @@
        *  https://github.com/Marus/cortex-debug/wiki/External-gdb-server-configuration
        *  https://github.com/Marus/cortex-debug/wiki/Cortex-Debug-Under-the-hood
       */
-      "cwd": "${workspaceRoot}",
+      /*"cwd": "${workspaceRoot}",
       "executable": "./kernel.elf",
       "name": "Debug with OpenOCD",
       "request": "attach",
@@ -30,20 +30,19 @@
       "searchDir": [],
       "runToEntryPoint": "_start",
       "showDevDebugOutput": "none",
-    },
-    /*
+    },*/
     { // webfreak
       "type": "gdb",
       "request": "attach",
       "name": "Attach to gdbserver",
-      "executable": "./kernel.elf",
+      "executable": "${workspaceFolder}/build/kernel.elf",
       "target": "localhost:1234",
       "remote": true,
       "gdbpath": "gdb-multiarch",
       "cwd": "${workspaceRoot}",
       "valuesFormatting": "parseText",
       "stopAtConnect": true,
-    },
+    },/*
     { // microsoft
       "name": "cppgdb - QEMU",
       "type": "cppdbg",
