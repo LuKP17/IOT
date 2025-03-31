@@ -39,14 +39,13 @@ Qemu peut décrire l'illusion créée pour le matériel si l'émulation n'est pa
 ===========
 
 DONE tout installer, lancer sur Qemu avec terminal attaché
-TODO faire marcher l'UART0 pour faire une echo console
+DONE faire marcher l'UART0 pour faire une echo console
 
 Si bloqué lors du make, Ctrl-A + C et quit pour quitter Qemu.
 J'ai des erreurs qui commencent par "ALSA lib confmisc.c:855:(parse_card) cannot find card '0'", je peux faire avec ?
+>> tant que ça ne bloque pas oui
 
-QUESTIONS
-
-- où est l'ISA dans le projet fourni ?
+- QUESTION où est l'ISA dans le projet fourni ?
 
 - quelle est la board qu'on émule ? C'est quoi versatile AB ou PB ?
 >> CPU est cortex-a8, le reste de la board est "versatile" et contient ça :
@@ -59,7 +58,7 @@ https://www.qemu.org/docs/master/system/arm/versatile.html
 - c'est quoi kernel.ld ? kernel.bin ?
 >> kernel.ld est un linker script, kernel.bin est une copie du binaire ELF, je ne sais pas à quoi elle sert
 >> kernel.elf a les descriptions, infos autre que code et données, .bin contient ce qui est projeté en mémoire (y compris les trous si .elf a des trous)
-TODO comprendre ce que kernel.ld a choisi comme setup
+DONE comprendre ce que kernel.ld a choisi comme setup
 
 - qu'est-ce que Zync-7000 ?
 >> la SoC
@@ -82,6 +81,7 @@ TODO comprendre ce que kernel.ld a choisi comme setup
 >> flag RXFE et TXFF pour attendre qu'un octet soit disponible en lecture ou puisse être écrit sans être perdu
 
 - où est le code des handlers autre que reset ? A implémenter les prochaines séances ?
+>> peut-être dans step2 oui
 
 
 ===========
@@ -90,28 +90,29 @@ TODO comprendre ce que kernel.ld a choisi comme setup
 
 Mission : éliminer le spinning (attente active de pression sur bouton ou touche clavier).
 
-Il faut vite s'occuper du matériel, ex: traiter les caractères reçues par l'UART pendant que l'utilisateur tape une phrase
-Le processeur peut exécution instruction s'endormir si rien à faire, et sera réveillé par un signal eléctrique.
+Il faut vite s'occuper du matériel, ex: traiter les caractères reçus par l'UART pendant que l'utilisateur tape une phrase
+Le processeur peut exécuter une instruction pour s'endormir si rien à faire, et sera réveillé par un signal eléctrique.
 VIC (device) est branché aux devices et fait le coordinateur, il est appelé par les controllers et appelle le CPU.
-VIC a une mémoire pour ne pas perdre les demandes d'interruption.
-Quels numéros d'interruptions pour quels devices ?
+VIC a une mémoire pour ne pas perdre les demandes d'interruption en attente de traitement.
+Processeur autorise de sonner à la porte (fil à 5V), autres autorisations pour le VIC et le controller de device (voir plus loin).
+
+Quel numéro d'interruption pour quel device ?
 Quelle est la tête du vecteur d'interruption ?
 >> voir la doc
-Processeur autorise de sonner à la porte (fil à 5V), autres autorisations pour le VIC et le controller de device.
 
 Quand le processeur doit réagir aux interruptions ? Comment ?
->> jamais au milieu d'une instruction, mais une ligne en C peut être coupée en 2 par une interruption
->> passer en mode interruption, la plupart des registres seront les mêmes => sauvegarder sur notre stack en utilisant le lr (le pc est déjà fait dans R14 et cpsr), les interruptions sont désactivés
+>> jamais au milieu d'une instruction, mais une ligne en C peut être coupée par une interruption
+>> passer en mode interruption, la plupart des registres seront les mêmes
+	- sauvegarder sur notre stack en utilisant le lr (le pc est déjà fait dans R14, et cpsr)
+	- les interruptions sont désactivées
 >> passer le pc en 0x18 pour traiter l'interruption (_isr, Interrupt Service Routine)
 	- '^' restaure le mode original
-TODO ajouter une 2è stack dans linker script et décommenter la stack IRQ dans check_stack()
 Le processeur a un pipeline a 3 niveaux, donc le pc est en avance par rapport à la prochaine instruction a exécuter
 
-Comment donner a UART le droit de lever inter ?
-Comment dire au VIC de preter attention ?
-Comment autorise VIC à dérouter CPU ?
+DONE ajouter une 2è stack dans linker script et décommenter la stack IRQ dans check_stack()
+"Ne pas laisser de traces du traitement de l'interruption"
 
-UART :
+Comment donner a UART le droit de lever inter ?
 >> utiliser le Summary of registers de la doc que je connais
 >> interrupt UARTIMSC mask pour activer les interruptions que en réception, donc bit 4 puis bit 5 plus tard
 	- donc le send ne changera pas au début
@@ -120,21 +121,21 @@ UARTMIS = ce que je fais ce qui m'est permis, à traiter
 UARTICR = set bit à 1 pour le mettre à 0 dans le UARTRIS, qui entraine UARTMIS
 UARTIFLS = pour laisser ou non le FIFO se remplir (envoyer suffisament d'octets pour délencher une interruption)
 >> on peut lire les registres avec le débugguer et les modifier à la main
-L'interruption est lancé lors de la transition et pas en fonction de la valeur.
+L'interruption est lancée lors de la transition et pas en fonction de la valeur.
 
-VIC :
-Doc section "Programmer's model" comme d'hab (PL190)
+Comment dire au VIC de preter attention ?
+>> doc section "Programmer's model" comme d'hab (PL190)
 VICIRQSTATUS = quelles interruptions sont levées, comme UARTMIS
-VICRAWINT = comme UARTRIS
+VICRAWINTR = comme UARTRIS
 VICINTENABLE = comme UARTMISC
 VICINTENCLEAR = comme UARTICR
 
 CPU :
-Fourni
+Fourni, voir irq.s, appelé par fonctions dans isr.c
 
 TODO coder le interrupt handler (à copier depuis les slides)
 Tableau de handlers, un par interruption, contient un pointeur vers le traitant, cookie pour savoir où sont les données
-Demander au VIC le champ de bits, puis boucle avec un masque pour savoir quels traitans appeler.
+Demander au VIC le champ de bits, puis boucle avec un masque pour savoir quels traitants appeler.
 Pas d'ack au niveau du VIC.
 Slide 32 a l'overview du soft
 
@@ -143,7 +144,35 @@ Slide 32 a l'overview du soft
   WEEK 2
 ===========
 
+Activation interruptions pour le CPU :
+- fourni (lire irq.s)
+- code appelé par core_enable_irqs(), à appeler dans _start
 
+Activation interruptions pour le VIC :
+- renseigné les adresses vers les registres du VIC
+- le registre VICIRQSTATUS a 32 bits, chacun correspondant à un device (voir Figure 17.1 de ARM926EJ-S)
+- il faudra appeler les handlers en fonction de quels bits sont levés
+- registres VIC manipulés dans isr.c
+- QUESTION à quoi sert l'argument du callback (différent par rapport à la leçon) ? Ce n'est pas le cookie ?
+
+Bon, coder ne vaut pas de points si je ne comprends rien.
+
+Mise en place des interruptions pour l'echo console :
+- UART : mettre des bits à 1 dans des registres pour permettre d'envoyer des signaux électriques au VIC ?
+- VIC : mettre des bits à 1 dans des registres pour permettre d'envoyer des signaux électriques au CPU ?
+- CPU : registre CPSR et son bit CPSR_IRQ_FLAG à clear pour activer les interruptions
+
+Chaîne des interruptions pour l'echo console :
+- on appuie sur le bouton du clavier, receive interrupt du UART est levé (hardware, bit levé)
+- avoir le bit levé envoie un signal électrique au VIC ?
+- le VIC a le bit correspondant au fil électrique levé par le signal de l'UART ?
+- avoir le bit levé envoie un signal électrique au CPU ?
+- _isr_handler est appelé (je ne sais pas comment exactement)
+- le CPU passe en mode interruption
+	- QUESTION est-ce que _irqs_setup est à compléter ? Vraiment bloqué sur ce passage là...
+	- appeller l'isr C
+- l'isr lit le masque d'interruptions (chercher à la bonne adresse mémoire) et appelle les handlers software
+- en return de l'isr le CPU repasse en mode noyau et continue son exécution
 
 
 ======================
