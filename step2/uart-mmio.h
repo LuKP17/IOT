@@ -32,12 +32,20 @@
 
 /*
  * Is the UART chipset a PL011?
- * If so, we need the details for the data and status registers.
+ * If so, we need the details for registers.
  */
-#define UART_DR 0x000
-#define UART_FR 0x018
+#define UART_DR     0x000 // data register
 
-#define UART_FR_RXFE (1 << 4) // Receive FIFO is empty
-#define UART_FR_TXFF (1 << 5) // Transmit FIFO is empty
+#define UART_FR     0x018 // flag register
+#define UART_FR_RXFE (1 << 4)   // receive FIFO is empty
+#define UART_FR_TXFF (1 << 5)   // transmit FIFO is empty
+
+#define UART_IMSC   0x038 // interrupt mask set/clear, to enable/diasble interrupts
+#define UART_IMSC_RXIM (1 << 4) // receive interrupt mask
+
+#define UART_RIS    0x03C // raw interrupt status register, what the device wants to do
+#define UART_MIS    0x040 // masked interrupt status register, UART_IMSC & UART_RIS
+
+#define UART_ICR    0x044 // interrupt clear register, clear UART_RIS bits 
 
 #endif /* UART_MMIO_H_ */

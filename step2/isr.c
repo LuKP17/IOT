@@ -41,6 +41,7 @@ struct handler handlers[NIRQS];
  */
 void isr() {
   // TODO
+  // disable interrupts? (saw in lesson)
   panic();
 }
 
@@ -63,7 +64,8 @@ void core_halt() {
  */
 void vic_setup_irqs() {
   // TODO
-  _irqs_setup();
+  // _irqs_setup(); ? C'est pour mettre en place la stack pour traiter une interruption,
+  // et cette fonction à l'air d'être appelée une seule fois, donc ce n'est pas là ?
   // vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, <cookie>);
 }
 
