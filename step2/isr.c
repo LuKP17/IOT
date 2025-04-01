@@ -28,7 +28,7 @@ extern void _wfi(void);
  * Data structure for handlers and cookies
  */
 struct handler {
-  void (*callback)(uint32_t, void*);
+  void (*callback)(uint32_t, void*); // parameters: interrupt number, cookie
   void *cookie;
 };
 
@@ -63,19 +63,16 @@ void core_halt() {
  * sides.
  */
 void vic_setup_irqs() {
-  // TODO
-  // _irqs_setup(); ? C'est pour mettre en place la stack pour traiter une interruption,
-  // et cette fonction à l'air d'être appelée une seule fois, donc ce n'est pas là ?
-  // vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, <cookie>);
+  _irqs_setup();
 }
 
 /*
  * Enables the given interrupt at the VIC level.
  */
 void vic_enable_irq(uint32_t irq, void (*callback)(uint32_t, void*), void *cookie) {
-  // TODO
-  // handlers[irq].callback = callback;
-  // handlers[irq].cookie = cookie;
+  mmio_set((void *)VIC_BASE_ADDR, VICINTENABLE, (1 << irq));
+  handlers[irq].callback = callback;
+  handlers[irq].cookie = cookie;
 }
 
 /*

@@ -26,6 +26,13 @@ void check_stacks() {
     panic();
 }
 
+/*
+ * Interrupts handlers
+ */
+void uart0_interrupt_handler(uint32_t irq, void* cookie) {
+  // ignore irq and cookie for now
+}
+
 /**
  * This is the C entry point,
  * upcalled once the hardware has been setup properly
@@ -33,11 +40,12 @@ void check_stacks() {
  */
 void _start(void) {
   char c;
-  check_stacks();
-  //core_enable_irqs();
-  //vic_setup_irqs();
+  check_stacks(); 
   uarts_init();
   uart_enable(UART0);
+  vic_setup_irqs();
+  vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, NULL);
+  //core_enable_irqs();
   for (;;) {
     uart_receive(UART0, &c);
     uart_send(UART0, c);
