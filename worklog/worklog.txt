@@ -170,9 +170,52 @@ Chaîne des interruptions pour l'echo console :
 - _isr_handler est appelé (je ne sais pas comment exactement)
 - le CPU passe en mode interruption
 	- QUESTION est-ce que _irqs_setup est à compléter ? Vraiment bloqué sur ce passage là...
+		- quand est-ce qu'on enregistre dans irq stack ?
+	=====
+	PROF
+
+	- voir VIC pour qui a réveillé
+	- comment gérer matériel QUESTION pourquoi pas avant ? checker le VIC ne va pas laisser une trace sur la stack normale ?
+	====
 	- appeller l'isr C
-- l'isr lit le masque d'interruptions (chercher à la bonne adresse mémoire) et appelle les handlers software
+- l'isr lit le masque d'interruptions du VIC (chercher à la bonne adresse mémoire) et appelle les handlers software
+- le handler correspondant à l'UART0 regarde le bit mask interruption pour savoir quelle interruption doit être traitée (réception pour nous)
 - en return de l'isr le CPU repasse en mode noyau et continue son exécution
+
+PROF
+Vider la FIFO de l'UART après réception du RX interrupt, car lancé à partir d'un certain seuil de remplissage.
+Réception -> on fait rien on attend
+Envoie -> remplir la FIFO au delà du seuil
+
+
+===========
+  COURS 3
+===========
+
+Où est la race condition ?
+Pas de traitements longs ni de synchro dans le traitant (voir le matériel, passer les données dans monde logiciel de boucle principale,
+qui fait le plus gros du traitement)
+=> du coup on peut être interrompu en faisant des choses dans le boucle principale
+
+Pour passer des octets d'un thread à l'autre sans lock, ring/circular buffer, si machine qui ordonne W et écrit pile comme dans slide
+Traitant (ISR) receive produce dans ring, boucle principale consomme.
+>> utiliser que ça pour transférer des octets
+Mettre les rings dans le cookie
+
+Le core_halt() a une instruction atomique qui lève les interruptions en s'endormant.
+
+Si le ring overflow, il faut panic() et se relancer
+NOTE : utiliser un panic() dans notre programme peut servir à remonter la cause d'un crash au débugger
+On peut copier les octets des ring buffers au buffers plus grands de l'application pour libérer l'application de cette gestion.
+Une meilleure solution est de notifier l'application qu'il y a des octets à lire/écrire
+
+COMMENT METTRE EN PLACE LE DEAL DE LISTENERS
+>> uart_init() sert à donner les fonctions que l'isr doit appeler
+>> réception : l'isr appelle quand on reçoit une interruption hardware, c'est seulement là que l'app utilise uart_read/uart_write()
+>> si l'app ne lit pas tous les octets, elle ne sera pas rappellée pour lire les octets restants
+>> émission : l'isr appelle quand il y a de la place dans le transmit ring, refuse quand il n'y a plus de place
+
+TODO modifier le start pour appeler les listeners en fonction de ce qui se passe dans l'UART
 
 
 ======================
@@ -201,6 +244,12 @@ sudo apt install gdb-multiarch								# gdb to debug program execution through Q
 In a new terminal, gdb-multiarch <kernel>.elf
 Then:
 	target remote localhost:<gdb_port>
+	
+Examine a value in memory
+	x <register_address> // x /t 0x101F1038 for UART0 interrupt mask in binary
+
+Print a value in binary
+	p /t (1 << 4)
 	
 * Execution overview
 

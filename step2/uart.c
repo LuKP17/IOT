@@ -26,7 +26,7 @@ struct uart uarts[NUARTS];
 
 static
 void uart_init(uint32_t uartno, void* bar) {
-  struct uart*uart = &uarts[uartno];
+  struct uart* uart = &uarts[uartno];
   uart->uartno = uartno;
   uart->bar = bar;
   // no hardware initialization necessary
@@ -42,9 +42,9 @@ void uarts_init() {
 }
 
 void uart_enable(uint32_t uartno) {
-  struct uart*uart = &uarts[uartno];
-  // nothing to do here, as long as
-  // we do not rely on interrupts
+  struct uart* uart = &uarts[uartno];
+  // allow to send interrupts to VIC
+  mmio_set(uart->bar, UART_IMSC, UART_IMSC_RXIM);
 }
 
 void uart_disable(uint32_t uartno) {
