@@ -47,7 +47,7 @@ irq_handler_addr: .word _isr_handler
 fiq_handler_addr: .word _fiq_handler
 
 _isr_handler:
-    b .  // unexpected interrupt occurred
+    bl isr
 
 _unused_handler:
     b .  // unused interrupt occurred

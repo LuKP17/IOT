@@ -45,7 +45,7 @@ void _start(void) {
   uart_enable(UART0);
   vic_setup_irqs();
   vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, NULL);
-  //core_enable_irqs();
+  core_enable_irqs();
   for (;;) {
     uart_receive(UART0, &c);
     uart_send(UART0, c);
