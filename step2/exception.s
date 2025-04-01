@@ -47,7 +47,10 @@ irq_handler_addr: .word _isr_handler
 fiq_handler_addr: .word _fiq_handler
 
 _isr_handler:
-    bl isr
+    sub lr,lr,#4                // adjust return address (see Cortex-A8 docs)
+    stmfd sp!, {r0-r12, lr}     // save registers with link register last
+    bl isr                      // now call the C function interrupt_service_routine
+    ldmfd sp!, {r0-r12, pc}^    // back from C, restore all registers including pc from saved lr
 
 _unused_handler:
     b .  // unused interrupt occurred
