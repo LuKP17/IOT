@@ -40,9 +40,14 @@ struct handler handlers[NIRQS];
  * status and call the corresponding handlers.
  */
 void isr() {
-  // TODO
-  // disable interrupts? (saw in lesson)
-  panic();
+  core_disable_irqs();
+  uint32_t irqs = mmio_read32((void *)VIC_BASE_ADDR, VICIRQSTATUS);
+  for (uint32_t i = 0; i < NIRQS; i++) {
+    // call handler if there is an interrupt
+    if (irqs & (1 << i))
+      handlers[i].callback(i, handlers[i].cookie);
+  }
+  core_enable_irqs();
 }
 
 void core_enable_irqs() {
@@ -63,7 +68,7 @@ void core_halt() {
  * sides.
  */
 void vic_setup_irqs() {
-  _irqs_setup();
+  // what needs to be done here?
 }
 
 /*

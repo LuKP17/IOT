@@ -31,6 +31,9 @@ void check_stacks() {
  */
 void uart0_interrupt_handler(uint32_t irq, void* cookie) {
   // ignore irq and cookie for now
+  char c;
+  uart_receive(UART0, &c);
+  uart_send(UART0, c);
 }
 
 /**
@@ -39,7 +42,6 @@ void uart0_interrupt_handler(uint32_t irq, void* cookie) {
  * in assembly language, see the startup.s file.
  */
 void _start(void) {
-  char c;
   check_stacks(); 
   uarts_init();
   uart_enable(UART0);
@@ -47,8 +49,7 @@ void _start(void) {
   vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, NULL);
   core_enable_irqs();
   for (;;) {
-    uart_receive(UART0, &c);
-    uart_send(UART0, c);
+    core_halt();
   }
 }
 

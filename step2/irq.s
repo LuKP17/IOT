@@ -54,6 +54,10 @@ _irqs_setup:
     msr cpsr, r1
     /* set IRQ stack */
     ldr sp, =irq_stack_top
+    sub lr,lr,#4                // adjust return address (see Cortex-A8 docs)
+    stmfd sp!, {r0-r12, lr}     // save registers with link register last
+    bl isr                      // now call the C function interrupt_service_routine
+    ldmfd sp!, {r0-r12, pc}^    // back from C, restore all registers including pc from saved lr
     /* go back to the mode the processor was in
      * when this function was called, normally,
      * it should be the Supervisor mode */
