@@ -56,6 +56,7 @@ void uart_disable(uint32_t uartno) {
 void uart_receive(uint8_t uartno, char *pt) {
   struct uart* uart = &uarts[uartno];
   while((mmio_read16(uart->bar, UART_FR) & UART_FR_RXFE));
+  // memory access clears receive interrupt bit
   *pt = (char)mmio_read16(uart->bar, UART_DR);
 }
 
@@ -79,4 +80,3 @@ void uart_send_string(uint8_t uartno, const char *s) {
     s++;
   }
 }
-

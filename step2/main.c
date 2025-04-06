@@ -13,6 +13,7 @@
  */
 #include "main.h"
 #include "uart.h"
+#include "uart-mmio.h"
 #include "isr.h"
 
 extern uint32_t irq_stack_top;
@@ -29,11 +30,19 @@ void check_stacks() {
 /*
  * Interrupts handlers
  */
-void uart0_interrupt_handler(uint32_t irq, void* cookie) {
-  // ignore irq and cookie for now
+void uart0_interrupt_handler(uint32_t vicirq, void* cookie) {
+  // vicirq is always UART0_IRQ, it's not a UART interrupt
   char c;
-  uart_receive(UART0, &c);
-  uart_send(UART0, c);
+  uint32_t irqs = mmio_read32((void *)UART0_BASE_ADDRESS, UART_MIS);
+  if (irqs & UART_IMSC_RXIM) {
+    uart_receive(UART0, &c);
+    uart_send(UART0, c);
+    // no ACK necessary
+    // mmio_set(UART0_BASE_ADDRESS, UART_ICR, (1 << UART_IMSC_RXIM));
+  }
+  else {
+    panic();
+  }
 }
 
 /**

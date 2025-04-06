@@ -158,29 +158,27 @@ Activation interruptions pour le VIC :
 Bon, coder ne vaut pas de points si je ne comprends rien.
 
 Mise en place des interruptions pour l'echo console :
-- UART : mettre des bits à 1 dans des registres pour permettre d'envoyer des signaux électriques au VIC ?
-- VIC : mettre des bits à 1 dans des registres pour permettre d'envoyer des signaux électriques au CPU ?
+- UART : mettre des bits à 1 dans des registres pour permettre d'envoyer des signaux électriques au VIC
+- VIC : mettre des bits à 1 dans des registres pour permettre d'envoyer des signaux électriques au CPU
 - CPU : registre CPSR et son bit CPSR_IRQ_FLAG à clear pour activer les interruptions
 
 Chaîne des interruptions pour l'echo console :
 - on appuie sur le bouton du clavier, receive interrupt du UART est levé (hardware, bit levé)
-- avoir le bit levé envoie un signal électrique au VIC ?
-- le VIC a le bit correspondant au fil électrique levé par le signal de l'UART ?
-- avoir le bit levé envoie un signal électrique au CPU ?
-- _isr_handler est appelé (je ne sais pas comment exactement)
+- avoir le bit levé envoie un signal électrique au VIC
+- le VIC a le bit correspondant au fil électrique levé par le signal de l'UART
+- avoir le bit levé envoie un signal électrique au CPU
+- _isr_handler est appelé
 - le CPU passe en mode interruption
-	- QUESTION est-ce que _irqs_setup est à compléter ? Vraiment bloqué sur ce passage là...
-		- quand est-ce qu'on enregistre dans irq stack ?
-	=====
-	PROF
-
-	- voir VIC pour qui a réveillé
-	- comment gérer matériel QUESTION pourquoi pas avant ? checker le VIC ne va pas laisser une trace sur la stack normale ?
-	====
-	- appeller l'isr C
+	- QUESTION est-ce que _irqs_setup est à compléter ? quand est-ce qu'on enregistre dans irq stack ? Vraiment bloqué sur ce passage là...
+	>> je l'ai complété avec sauvegarde registres + call isr C + restoration registres, logique pour moi
 - l'isr lit le masque d'interruptions du VIC (chercher à la bonne adresse mémoire) et appelle les handlers software
 - le handler correspondant à l'UART0 regarde le bit mask interruption pour savoir quelle interruption doit être traitée (réception pour nous)
 - en return de l'isr le CPU repasse en mode noyau et continue son exécution
+
+Normalement il faut faire des ACK pour permettre de relancer la même interruption.
+Il n'y a pas besoin au niveau du VIC PL0190 sur ARM car il voit la demande d'interruption des devices en continu,
+donc l'ACK au niveau du device va entraîner l'ACK au niveau du VIC.
+Il n'y a pas besoin au niveau de l'UART non plus car l'accès mémoire au registre UARTDR entraine un ACK, au moins pour le receive interrupt.
 
 PROF
 Vider la FIFO de l'UART après réception du RX interrupt, car lancé à partir d'un certain seuil de remplissage.

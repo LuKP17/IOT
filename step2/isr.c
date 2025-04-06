@@ -44,8 +44,10 @@ void isr() {
   uint32_t irqs = mmio_read32((void *)VIC_BASE_ADDR, VICIRQSTATUS);
   for (uint32_t i = 0; i < NIRQS; i++) {
     // call handler if there is an interrupt
-    if (irqs & (1 << i))
+    if (irqs & (1 << i)) {
       handlers[i].callback(i, handlers[i].cookie);
+      // no ACK necessary
+    }
   }
   core_enable_irqs();
 }
