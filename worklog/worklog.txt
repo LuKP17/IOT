@@ -175,15 +175,15 @@ Chaîne des interruptions pour l'echo console :
 - le handler correspondant à l'UART0 regarde le bit mask interruption pour savoir quelle interruption doit être traitée (réception pour nous)
 - en return de l'isr le CPU repasse en mode noyau et continue son exécution
 
+UART receive interrupt handler :
+Lancé à partir d'un certain seuil de remplissage, donc il faut vider la FIFO de réception dans le handler
+QUESTION pourquoi l'interruption est envoyée dès le premier caractère dans mon cas ? Dépasse déjà le seuil de remplissage ?
+			Heureusement sinon les premiers caractères ne seraient pas affichés immédiatement.
+
 Normalement il faut faire des ACK pour permettre de relancer la même interruption.
 Il n'y a pas besoin au niveau du VIC PL0190 sur ARM car il voit la demande d'interruption des devices en continu,
 donc l'ACK au niveau du device va entraîner l'ACK au niveau du VIC.
-Il n'y a pas besoin au niveau de l'UART non plus car l'accès mémoire au registre UARTDR entraine un ACK, au moins pour le receive interrupt.
-
-PROF
-Vider la FIFO de l'UART après réception du RX interrupt, car lancé à partir d'un certain seuil de remplissage.
-Réception -> on fait rien on attend
-Envoie -> remplir la FIFO au delà du seuil
+Il n'y a pas besoin au niveau de l'UART non plus car l'accès mémoire au registre UARTDR semble entrainer un ACK, au moins pour le receive interrupt.
 
 
 ===========
@@ -215,6 +215,33 @@ COMMENT METTRE EN PLACE LE DEAL DE LISTENERS
 
 TODO modifier le start pour appeler les listeners en fonction de ce qui se passe dans l'UART
 
+Réception -> on fait rien on attend
+Envoie -> remplir la FIFO au delà du seuil
+
+
+===========
+  WEEK 3
+===========
+
+More work for week 2, some details/question added.
+
+Comprendre où est la race condition :
+- on ne veut pas d'attente active dans le programme principal
+- tout mettre dans le handler est trop lent si on peut attendre des octets à envoyer par exemple, ça ralentit aussi les autres interruptions derrière
+- laisser le handler traiter au niveau du device et déplacer le reste du traitement dans le programme principal
+>> requiert un moyen de passer les données au logiciel
+>> la race condition vient du fait qu'on peut se faire interrompre par le handler dans le programme principal
+- désactiver les interruptions lors des accès à la liste
+QUESTION INUTILE sinon qu'est-ce qui se passe de mal pendant la race condition ?
+	- si on a une boucle jusqu'à ce que la liste soit vide, on n'oubliera pas le caractère qui a été ajouté pendant le traitement du précédent ?
+	- si on ajoute à la fin et on prend au début, les caractères seront toujours traités dans le bon ordre ?
+- encore mieux, utiliser un "lock-free (implém ultra précise) ring buffer" qui n'a pas besoin de désactiver les interruptions
+
+Pas encore compris la slide 13.
+
+Passage rapide sur le reste des slides pour des grosses questions...
+- QUESTION pas encore compris pourquoi on a besoin de Mr.Event, ça doit être dans les slides 22/23
+
 
 ======================
    Practical Guide
@@ -244,7 +271,7 @@ Then:
 	target remote localhost:<gdb_port>
 	
 Examine a value in memory
-	x <register_address> // x /t 0x101F1038 for UART0 interrupt mask in binary
+	x <register_address> ; x /t 0x101F1038 for UART0 interrupt mask in binary
 
 Print a value in binary
 	p /t (1 << 4)
