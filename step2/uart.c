@@ -55,9 +55,8 @@ void uart_disable(uint32_t uartno) {
 
 void uart_receive(uint8_t uartno, char *pt) {
   struct uart* uart = &uarts[uartno];
-  while((mmio_read16(uart->bar, UART_FR) & UART_FR_RXFE));
-  // memory access clears receive interrupt bit
-  *pt = (char)mmio_read16(uart->bar, UART_DR);
+  // this memory access is where receive interrupt bit is cleared, why?
+  *pt = mmio_read16(uart->bar, UART_FR) & UART_FR_RXFE ? NULL : (char)mmio_read16(uart->bar, UART_DR);
 }
 
 /**
