@@ -45,7 +45,7 @@ Si bloqué lors du make, Ctrl-A + C et quit pour quitter Qemu.
 J'ai des erreurs qui commencent par "ALSA lib confmisc.c:855:(parse_card) cannot find card '0'", je peux faire avec ?
 >> tant que ça ne bloque pas oui
 
-- QUESTION où est l'ISA dans le projet fourni ?
+- l'ISA contient le jeu d'instructions assembleur
 
 - quelle est la board qu'on émule ? C'est quoi versatile AB ou PB ?
 >> CPU est cortex-a8, le reste de la board est "versatile" et contient ça :
@@ -69,7 +69,7 @@ DONE comprendre ce que kernel.ld a choisi comme setup
 - on initialise le contrôleur de mémoire (qui ?) et on copie le "BIOS" dedans pour l'exécuter
 - Qemu charge les sections de notre .elf (relogeable) à partir de l'adresse 0 (écrase le "BIOS")
 - le code de exception.s est donc exécuté pour mettre en place le vecteur d'interruption
-- le reset handler défini dans startup.s est exécuté (TODO comprendre pourquoi), les explications sont déjà dans le code
+- le reset handler défini dans startup.s est exécuté (comprendre pourquoi), les explications sont déjà dans le code
 - la fonction _start est appelée
 - on vérifie que la stack soit de taille positive
 	- qu'est-ce que "MEMORY" ?
@@ -133,7 +133,7 @@ VICINTENCLEAR = comme UARTICR
 CPU :
 Fourni, voir irq.s, appelé par fonctions dans isr.c
 
-TODO coder le interrupt handler (à copier depuis les slides)
+DONE coder le interrupt handler (à copier depuis les slides)
 Tableau de handlers, un par interruption, contient un pointeur vers le traitant, cookie pour savoir où sont les données
 Demander au VIC le champ de bits, puis boucle avec un masque pour savoir quels traitants appeler.
 Pas d'ack au niveau du VIC.
@@ -153,7 +153,7 @@ Activation interruptions pour le VIC :
 - le registre VICIRQSTATUS a 32 bits, chacun correspondant à un device (voir Figure 17.1 de ARM926EJ-S)
 - il faudra appeler les handlers en fonction de quels bits sont levés
 - registres VIC manipulés dans isr.c
-- QUESTION à quoi sert l'argument du callback (différent par rapport à la leçon) ? Ce n'est pas le cookie ?
+- l'argument du callback est le numéro d'interruption, je ne sais pas à quoi il sert
 
 Bon, coder ne vaut pas de points si je ne comprends rien.
 
@@ -170,15 +170,15 @@ Chaîne des interruptions pour l'echo console :
 - _isr_handler est appelé
 - le CPU passe en mode interruption
 	- QUESTION est-ce que _irqs_setup est à compléter ? quand est-ce qu'on enregistre dans irq stack ? Vraiment bloqué sur ce passage là...
-	>> je l'ai complété avec sauvegarde registres + call isr C + restoration registres, logique pour moi
+	>> A VERIFIER ! Je l'ai complété avec sauvegarde registres + call isr C + restoration registres, logique pour moi
 - l'isr lit le masque d'interruptions du VIC (chercher à la bonne adresse mémoire) et appelle les handlers software
 - le handler correspondant à l'UART0 regarde le bit mask interruption pour savoir quelle interruption doit être traitée (réception pour nous)
 - en return de l'isr le CPU repasse en mode noyau et continue son exécution
 
 UART receive interrupt handler :
 Lancé à partir d'un certain seuil de remplissage, donc il faut vider la FIFO de réception dans le handler
-QUESTION pourquoi l'interruption est envoyée dès le premier caractère dans mon cas ? Dépasse déjà le seuil de remplissage ?
-			Heureusement sinon les premiers caractères ne seraient pas affichés immédiatement.
+Pourquoi l'interruption est envoyée dès le premier caractère dans mon cas ? Dépasse déjà le seuil de remplissage ?
+>> on dépasse déjà le seuil, on a un registre pour le seuil dans l'UART, Qemu décide un peu aussi
 
 Normalement il faut faire des ACK pour permettre de relancer la même interruption.
 Il n'y a pas besoin au niveau du VIC PL0190 sur ARM car il voit la demande d'interruption des devices en continu,
@@ -207,7 +207,7 @@ NOTE : utiliser un panic() dans notre programme peut servir à remonter la cause
 On peut copier les octets des ring buffers au buffers plus grands de l'application pour libérer l'application de cette gestion.
 Une meilleure solution est de notifier l'application qu'il y a des octets à lire/écrire
 
-COMMENT METTRE EN PLACE LE DEAL DE LISTENERS
+COMMENT METTRE EN PLACE LE DEAL DE LISTENERS (conception)
 >> uart_init() sert à donner les fonctions que l'isr doit appeler
 >> réception : l'isr appelle quand on reçoit une interruption hardware, c'est seulement là que l'app utilise uart_read/uart_write()
 >> si l'app ne lit pas tous les octets, elle ne sera pas rappellée pour lire les octets restants
@@ -227,20 +227,33 @@ More work for week 2, some details/question added.
 
 Comprendre où est la race condition :
 - on ne veut pas d'attente active dans le programme principal
-- tout mettre dans le handler est trop lent si on peut attendre des octets à envoyer par exemple, ça ralentit aussi les autres interruptions derrière
+- (I'M HERE) tout mettre dans le handler est trop lent si on peut attendre des octets à envoyer par exemple, ça ralentit aussi les autres interruptions derrière
 - laisser le handler traiter au niveau du device et déplacer le reste du traitement dans le programme principal
 >> requiert un moyen de passer les données au logiciel
 >> la race condition vient du fait qu'on peut se faire interrompre par le handler dans le programme principal
 - désactiver les interruptions lors des accès à la liste
-QUESTION INUTILE sinon qu'est-ce qui se passe de mal pendant la race condition ?
+Qu'est-ce qui se passe de mal pendant la race condition ?
 	- si on a une boucle jusqu'à ce que la liste soit vide, on n'oubliera pas le caractère qui a été ajouté pendant le traitement du précédent ?
 	- si on ajoute à la fin et on prend au début, les caractères seront toujours traités dans le bon ordre ?
+>> ça dépend manip queue
 - encore mieux, utiliser un "lock-free (implém ultra précise) ring buffer" qui n'a pas besoin de désactiver les interruptions
 
 Pas encore compris la slide 13.
 
-Passage rapide sur le reste des slides pour des grosses questions...
-- QUESTION pas encore compris pourquoi on a besoin de Mr.Event, ça doit être dans les slides 22/23
+A quoi sert les listeners et les évènements dans le cas de l'UART ?
+>> car le ring buffer peut déborder si on n'extrait pas les octets assez rapidement dans le main loop
+Comment ça se passe lors de l'exécution de l'application avec des listeners ?
+>> à la fin l'application ne fera que réagir à des évènements avec ses listeners
+Comment gérer les évènements si il y en a plusieurs en attente ?
+>> le rôle de Mr.Event !
+
+L'implémentation des listeners :
+QUESTION uart_read() et uart_write() dans le listener framework correspond au uart_receive() et uart_send() ?
+>> attention à la couche entre l'isr et le code de l'application, mais si c'est déjà la couche intermiédiaire ok
+
+Les listeners est un choix d'organisation pour le code.
+L'isr s'occupe de lire/écrire dans le ring buffer, puis on revient en mode normal, puis l'application possède des grands buffers pour s'occuper des débordements.
+L'application décide quand appeler les listeners, les listeners vont piocher dans les grands buffers.
 
 
 ======================
