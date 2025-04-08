@@ -45,6 +45,7 @@ void uart0_interrupt_handler(uint32_t vicirq, void* cookie) {
   if (irqs & UART_IMSC_RXIM) {
     uart0_receive_handler(cookie);
     // no ACK needed for device, done during uart_receive() it seems
+    // mmio_set((void *)UART0_BASE_ADDRESS, UART_ICR, UART_IMSC_RXIM);
   }
   else {
     panic();

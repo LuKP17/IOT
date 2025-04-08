@@ -70,7 +70,7 @@ void core_halt() {
  * sides.
  */
 void vic_setup_irqs() {
-  // what needs to be done here?
+  _irqs_setup();
 }
 
 /*
