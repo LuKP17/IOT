@@ -19,6 +19,42 @@
 extern uint32_t irq_stack_top;
 extern uint32_t stack_top;
 
+#define MAX_CHARS 512
+volatile uint32_t tail = 0;
+volatile uint8_t buffer[MAX_CHARS];
+volatile uint32_t head = 0;
+
+bool_t ring_empty() {
+  return (head==tail);
+}
+
+bool_t ring_full() {
+  int next = (head + 1) % MAX_CHARS;
+  return (next==tail);
+}
+
+void ring_put(uint8_t bits) {
+  uint32_t next = (head + 1) % MAX_CHARS;
+  buffer[head] = bits;
+  head = next;
+}
+
+uint8_t ring_get() {
+  uint8_t bits;
+  uint32_t next = (tail + 1) % MAX_CHARS;
+  bits = buffer[tail];
+  tail = next;
+  return bits;
+}
+
+void process_ring() {
+  char c;
+  while (!ring_empty()) {
+    c = ring_get();
+    uart_send(UART0, c);
+  }
+}
+
 void check_stacks() {
   void *memsize = (void*)MEMORY;
   void *addr;
@@ -34,7 +70,7 @@ void uart0_receive_handler(void *cookie) {
   char c;
   uart_receive(UART0, &c);
   while (c) {
-    uart_send(UART0, c);
+    ring_put(c);
     uart_receive(UART0, &c);
   }
 }
@@ -65,7 +101,10 @@ void _start(void) {
   vic_enable_irq(UART0_IRQ, &uart0_interrupt_handler, NULL);
   core_enable_irqs();
   for (;;) {
-    core_halt();
+    process_ring();
+    core_disable_irqs();
+    if (ring_empty())
+      core_halt();
   }
 }
 

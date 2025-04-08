@@ -227,7 +227,7 @@ More work for week 2, some details/question added.
 
 Comprendre où est la race condition :
 - on ne veut pas d'attente active dans le programme principal
-- (I'M HERE) tout mettre dans le handler est trop lent si on peut attendre des octets à envoyer par exemple, ça ralentit aussi les autres interruptions derrière
+- tout mettre dans le handler est trop lent si on peut attendre des octets à envoyer par exemple, ça ralentit aussi les autres interruptions derrière
 - laisser le handler traiter au niveau du device et déplacer le reste du traitement dans le programme principal
 >> requiert un moyen de passer les données au logiciel
 >> la race condition vient du fait qu'on peut se faire interrompre par le handler dans le programme principal
